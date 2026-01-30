@@ -62,8 +62,7 @@ class Bird(Animation):
             self.angle = -90
         if self.angle > 25:
             self.angle = 25
-        if self.top > SCREEN_HEIGHT:
-            self.top = SCREEN_HEIGHT
+
         if self.bottom < 0:
             self.bottom = 0
 

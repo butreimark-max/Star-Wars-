@@ -29,40 +29,75 @@ class Setting_button_orginal (Animation):
 
 
 
+class Enemy_Starship(Animation):
+    def __init__(self, angle, is_flip):
+        super().__init__(filename="Enemy ship.png", scale=2, flipped_horizontally=is_flip)
+        self.angle = angle
+    def movement(self,width,height):
+        self.center_x += self.change_x
+        self.center_y += self.change_y
+        self.change_y = -0.5
+
+
+
+
 
 class Starship (Animation):
     def __init__(self, ):
-        super().__init__(filename="images (1).png", scale=0.5)
+        super().__init__(filename="pixilart-drawing (6).png", scale=1)
         self.angle = 0
 
     def movement(self, width, height):
         self.center_x += self.change_x
         self.center_y += self.change_y
-
+        if self.bottom < 0:
+            self.bottom = 0
+        if self.top > 100:
+            self.top = 100
 
 
 class MyGame(arcade.Window):
     def __init__(self, width, height, title):
         super().__init__(width, height, title)
         """ background """
-        self.background_picture = arcade.load_texture("pixel-art-spaceship-flying-starry-cosmic-sky-scene-depicting-dazzling-filled-stars-colorful-nebulae-evoking-398455670.webp")
+        self.background_picture = arcade.load_texture("pixilart-drawing (5).png")
         self.setting_picture=arcade.load_texture("black-screen-background-4k.png")
         self.setting_button=Setting_button_orginal()
         """Starship """
         self. star_ship_star=Starship()
         self.star_ship_star.center_x = self.width / 2
         self.star_ship_star.center_y=self.height *0.25
+        """Enemy ship """
+        self.enemy_star_ship = Enemy_Starship(angle=180,is_flip=True)
+
+        self.enemy_star_ship.center_x = self.width / 2
+        self.enemy_star_ship.center_y = self.height * 0.75
+        """ enemy ship sprite listh """
+        self.enemy_star_ship =arcade.SpriteList()
+        self.game_reset()
         """game status """
         self.game_status=1
         self.set_mouse_visible(False)
         #self.set_mouse_position(0,0)
+    def game_reset(self):
+        self.game_status = 1
+        self.enemy_star_ship = arcade.SpriteList()
+        self.star_ship_star.center_x = self.width / 2
+        self.star_ship_star.center_y = self.height * 0.25
+        for p in range(13):
+            enemyl1 = Enemy_Starship(180,is_flip=True)
+            enemyl1.center_x =70 + 150 *p
+            enemyl1.center_y =1000
 
+
+            self.enemy_star_ship.append(enemyl1)
 
 
 
     def on_mouse_motion(self, x: int, y: int, dx: int, dy: int):
         if self.game_status==1:
             self.star_ship_star.center_x=x
+            self.star_ship_star.center_y=y
 
 
 
@@ -81,6 +116,7 @@ class MyGame(arcade.Window):
         self.clear()
         arcade.draw_texture_rectangle(self.width / 2, self.height / 2, self.width, self.height, self.background_picture)
         self.star_ship_star.draw()
+        self.enemy_star_ship.draw()
         if self.game_status==1:
             arcade.draw_text("game", 100,100)
             self.set_mouse_visible(False)
@@ -92,8 +128,9 @@ class MyGame(arcade.Window):
             self.set_mouse_visible(True)
 
     def on_update(self, delta_time):
-        pass
-
+        if self.game_status==1:
+            for enemy in self.enemy_star_ship:
+                enemy.movement(self.width, self.height)
 
 window = MyGame(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)
 arcade.run()
