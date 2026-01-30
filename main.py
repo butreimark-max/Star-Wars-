@@ -1,3 +1,7 @@
+import random
+import time
+from itertools import cycle
+
 import arcade
 
 SCREEN_WIDTH = 1920
@@ -27,8 +31,16 @@ class Setting_button_orginal (Animation):
         self.center_x=750
         self.center_y=500
 
+class Shooting(Animation):
+    def __init__(self,):
+        super().__init__(filename="lazer.png", scale=0.5)
 
-
+    def movement(self, width, height):
+        self.center_x += self.change_x
+        self.center_y += self.change_y
+        self.change_y = 5
+        if self.bottom>height:
+            self.kill()
 class Enemy_Starship(Animation):
     def __init__(self, angle, is_flip):
         super().__init__(filename="Enemy ship.png", scale=2, flipped_horizontally=is_flip)
@@ -36,7 +48,7 @@ class Enemy_Starship(Animation):
     def movement(self,width,height):
         self.center_x += self.change_x
         self.center_y += self.change_y
-        self.change_y = -0.5
+        self.change_y = -5
 
 
 
@@ -72,32 +84,56 @@ class MyGame(arcade.Window):
 
         self.enemy_star_ship.center_x = self.width / 2
         self.enemy_star_ship.center_y = self.height * 0.75
-        """ enemy ship sprite listh """
+        """ Sprite lists """
         self.enemy_star_ship =arcade.SpriteList()
+        self.lazers =arcade.SpriteList()
         self.game_reset()
         """game status """
         self.game_status=1
         self.set_mouse_visible(False)
         #self.set_mouse_position(0,0)
+        """Waves"""
+        self.waves=1
+        """cooldown"""
+        self.cooldown=time.time()
+
+
     def game_reset(self):
         self.game_status = 1
         self.enemy_star_ship = arcade.SpriteList()
         self.star_ship_star.center_x = self.width / 2
         self.star_ship_star.center_y = self.height * 0.25
-        for p in range(13):
-            enemyl1 = Enemy_Starship(180,is_flip=True)
-            enemyl1.center_x =70 + 150 *p
-            enemyl1.center_y =1000
+        self.enemy_create(2000)
 
+
+    def enemy_create(self,amount_enemy):
+        for p in range(amount_enemy):
+            enemyl1 = Enemy_Starship(180, is_flip=True)
+            enemyl1.center_x=random.randint(100,self.width-100)
+            enemyl1.bottom = self.height + 110 *p
 
             self.enemy_star_ship.append(enemyl1)
-
-
 
     def on_mouse_motion(self, x: int, y: int, dx: int, dy: int):
         if self.game_status==1:
             self.star_ship_star.center_x=x
             self.star_ship_star.center_y=y
+    def on_mouse_press(self, x: int, y: int, button: int, modifiers: int):
+        if button==arcade.MOUSE_BUTTON_LEFT:
+            if time.time()-self.cooldown>=0.5:
+                self.cooldown=time.time()
+                lazer_shoot = Shooting()
+                lazer_shoot .center_x =self.star_ship_star.center_x-29
+                lazer_shoot .center_y =self.star_ship_star.center_y+10
+
+                self.lazers.append(lazer_shoot )
+                lazer_shoot = Shooting()
+                lazer_shoot .center_x =self.star_ship_star.center_x+29
+                lazer_shoot .center_y =self.star_ship_star.center_y+10
+
+                self.lazers.append(lazer_shoot )
+
+
 
 
 
@@ -109,12 +145,14 @@ class MyGame(arcade.Window):
             elif self.game_status==1:
                 self.game_status=2
 
+
     def on_key_release(self, symbol: int, modifiers: int):
             pass
 
     def on_draw(self):
         self.clear()
         arcade.draw_texture_rectangle(self.width / 2, self.height / 2, self.width, self.height, self.background_picture)
+        self.lazers.draw()
         self.star_ship_star.draw()
         self.enemy_star_ship.draw()
         if self.game_status==1:
@@ -131,6 +169,29 @@ class MyGame(arcade.Window):
         if self.game_status==1:
             for enemy in self.enemy_star_ship:
                 enemy.movement(self.width, self.height)
+            for lazer in self.lazers:
+                lazer.movement(self.width, self.height)
+                shooted=arcade.check_for_collision_with_list(lazer,self.enemy_star_ship)
+                if len(shooted)>0:
+                    lazer.kill()
+                    for enemy in shooted:
+                        enemy.kill()
+            if len(self.enemy_star_ship) == 0:
+                self.waves+=1
+                amount=0
+                if self.waves==1:
+                    amount=5
+                if self.waves==2:
+                    amount=10
+                if self.waves==3:
+                    amount=15
+                if self.waves==4:
+                    amount=20
+                self.enemy_create(amount)
+
+
+
+
 
 window = MyGame(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)
 arcade.run()
