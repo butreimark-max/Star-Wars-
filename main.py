@@ -2,95 +2,42 @@ import random
 import time
 from itertools import cycle
 
+from All_cards_boosts import All_cards_boosts
+from Constants import SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE
+from Enemy_Starship import Enemy_Starship
+from Setting_button_orginal import Setting_button_orginal
+from Shooting import Shooting
+from  Skin_shop_button_orginal import Skin_shop_button_orginal
+
 import arcade
 
-SCREEN_WIDTH = 1920
-SCREEN_HEIGHT = 1080
-SCREEN_TITLE = ""
-class Animation(arcade.Sprite):
-    time = 0
-    i = 0
-
-    def update_animation(self, delta_time: float = 1 / 60):
-        self.time += delta_time
-        print(delta_time)
-        if self.time >= 0.2:
-            self.time = 0
-            if len(self.textures) - 1 == self.i:
-                self.i = 0
-            else:
-                self.i += 1
-            self.set_texture(self.i)
+from Starship import Starship
+from Ultimate import Ultimate
 
 
 
 
-class Setting_button_orginal (Animation):
-    def __init__(self, ):
-        super().__init__(filename="Без названия.jpg", scale=0.5)
-        self.center_x=750
-        self.center_y=500
-class Skin_shop_button_orginal (Animation):
-    def __init__(self, ):
-        super().__init__(filename="Skins button.png", scale=5)
-        self.center_x=SCREEN_WIDTH/2
-        self.center_y=500
-class Ultimate (Animation):
-    def __init__(self,):
-        super().__init__(filename="lazer.png", scale=100)
-
-    def movement(self, width, height):
-        self.center_x += self.change_x
-        self.center_y += self.change_y
-        self.change_y = 5
-        if self.bottom>height:
-            self.kill()
-class Shooting(Animation):
-    def __init__(self,):
-        super().__init__(filename="lazer.png", scale=0.5)
-
-    def movement(self, width, height):
-        self.center_x += self.change_x
-        self.center_y += self.change_y
-        self.change_y = 5
-        if self.bottom>height:
-            self.kill()
-class Enemy_Starship(Animation):
-    def __init__(self, angle, is_flip):
-        super().__init__(filename="Enemy ship.png", scale=2, flipped_horizontally=is_flip)
-        self.angle = angle
-    def movement(self,width,height):
-        self.center_x += self.change_x
-        self.center_y += self.change_y
-        self.change_y = -5
-        if self.top <0:
-            self.bottom=height
 
 
 
 
-class Starship (Animation):
-    def __init__(self, ):
-        super().__init__(filename="pixilart-drawing (6).png", scale=1)
-        self.angle = 0
 
-    def movement(self, width, height):
-        self.center_x += self.change_x
-        self.center_y += self.change_y
-        if self.bottom < 0:
-            self.bottom = 0
-        if self.top > 100:
-            self.top = 100
+
+
+
+
+
+
 
 
 class MyGame(arcade.Window):
     def __init__(self, width, height, title):
         super().__init__(width, height, title)
         """ background """
-        self.background_picture = arcade.load_texture("pixilart-drawing (5).png")
-        self.setting_picture=arcade.load_texture("black-screen-background-4k.png")
+        self.background_picture = arcade.load_texture("Pictures/pixilart-drawing (5).png")
+        self.setting_picture=arcade.load_texture("Pictures/black-screen-background-4k.png")
         self.setting_button=Setting_button_orginal()
-        self.skin_shop=arcade.load_texture("Skin Shop.png")
+        self.skin_shop=arcade.load_texture("Pictures/Skin Shop.png")
 
         self.skin_shop_button =Skin_shop_button_orginal()
         """Starship """
@@ -106,6 +53,8 @@ class MyGame(arcade.Window):
         self.enemy_star_ship =arcade.SpriteList()
         self.lazers =arcade.SpriteList()
         self.super_ult =arcade.SpriteList()
+        self.all_card_boost =arcade.SpriteList()
+
         self.game_reset()
         """game status """
         self.game_status=1
@@ -121,10 +70,30 @@ class MyGame(arcade.Window):
         self.wave_prepare = False
         self.prepare_start_time = 0
         self.prepare_duration =   5
+        """All cards"""
+
+        self.boost_fr=All_cards_boosts("Pictures/Fire rate card.png",100,"fire_rate")
+        self.all_card_boost.append(self.boost_fr)
+        self.boost_d = All_cards_boosts("Pictures/Damage.png", 300, "damage")
+        self.all_card_boost.append(self.boost_d)
+        self.boost_Ult = All_cards_boosts("Pictures/Ult.png", 500, "ult_charge")
+        self.all_card_boost.append(self.boost_Ult)
+        """ cooldowns"""
+        self.fire_rate_cooldown=0.6
+
+
+
+    def check_cards_buttons(self, x, y):
+        if self.boost_fr.collides_with_point((x, y)):
+            self.fire_rate_cooldown=self.fire_rate_cooldown * (1-5/100)
+            print(self.fire_rate_cooldown)
+        if self.boost_d.collides_with_point((x, y)):
+            pass
+        if self.boost_Ult.collides_with_point((x, y)):
+            pass
 
     def check_menu_buttons(self, x, y):
         if self.skin_shop_button.collides_with_point((x, y)):
-
             self.game_status = 3
 
     def game_reset(self):
@@ -153,7 +122,7 @@ class MyGame(arcade.Window):
             if self.game_status == 2:
                 self.check_menu_buttons(x, y)
                 return
-            if time.time()-self.cooldown>=0.5:
+            if time.time()-self.cooldown>=self.fire_rate_cooldown:
                 self.cooldown=time.time()
                 lazer_shoot = Shooting()
                 lazer_shoot .center_x =self.star_ship_star.center_x-29
@@ -165,21 +134,16 @@ class MyGame(arcade.Window):
                 lazer_shoot .center_y =self.star_ship_star.center_y+10
 
                 self.lazers.append(lazer_shoot )
+            if self.game_status==4:
+                self.check_cards_buttons(x, y)
+                return
         if button==arcade.MOUSE_BUTTON_RIGHT:
             if self.enemy_death>=10:
                 self.enemy_death=0
-
-
                 ult_super = Ultimate()
                 ult_super .center_x =self.star_ship_star.center_x-29
                 ult_super .center_y =self.star_ship_star.center_y+10
-
-
-
                 self.super_ult.append(ult_super )
-
-
-
 
 
     def on_key_press(self, symbol: int, modifiers: int):
@@ -205,6 +169,11 @@ class MyGame(arcade.Window):
         self.star_ship_star.draw()
         self.enemy_star_ship.draw()
         self.super_ult.draw()
+
+        arcade.draw_text(f'Damage 100', 0, self.height - 100, font_size=20)
+        arcade.draw_text(f'Fire rate: {self.fire_rate_cooldown}', 0, self.height - 150, font_size=20)
+        arcade.draw_text(f'Damage 100', 0, self.height - 200, font_size=20)
+
         if self.game_status==1:
             arcade.draw_text("game", 100,100)
             self.set_mouse_visible(False)
@@ -225,6 +194,8 @@ class MyGame(arcade.Window):
         if self.game_status ==3:
             arcade.draw_texture_rectangle(self.width / 2, self.height / 2, self.width, self.height,
                                           self.skin_shop, )
+        if self.game_status == 4:
+            self.all_card_boost.draw()
 
 
     def on_update(self, delta_time):
@@ -249,10 +220,10 @@ class MyGame(arcade.Window):
                         enemy.kill()
                         self.enemy_death += 1
 
-
-
         if len(self.enemy_star_ship) == 0 and not self.wave_prepare:
             self.wave_prepare = True
+            self.game_status=4
+            self.set_mouse_visible(True)
             self.prepare_start_time = time.time()
 
         if self.wave_prepare:
@@ -264,9 +235,9 @@ class MyGame(arcade.Window):
 
                 self.wave_prepare = False
                 self.waves += 1
+                self.game_status=1
+                self.set_mouse_visible(False)
                 self.enemy_create(self.get_enemy_amount())
-
-
 
 
 
@@ -274,3 +245,9 @@ window = MyGame(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)
 arcade.run()
 
 
+"""
+1. выставить карточки в норм порядке + размер подобрать
+2. Сделать так, что когда нажали на краточку - нужно переключить состояние на игру
+3. Нарисовать босса и остальные спрайтики (возможно, прикольные иконки для дэмеджа + файр рейт + ульт, которые будут в углу окна)
+4. Сделать так, чтобы при нажатии на ТАБ отображалась статистика игрока (состояние, тру/фолс) 
+"""
