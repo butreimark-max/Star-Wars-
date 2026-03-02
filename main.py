@@ -2,12 +2,14 @@ import random
 import time
 from itertools import cycle
 
+from arcade import draw_text
+
 from All_cards_boosts import All_cards_boosts
 from Constants import SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE
 from Enemy_Starship import Enemy_Starship
 from Setting_button_orginal import Setting_button_orginal
 from Shooting import Shooting
-from  Skin_shop_button_orginal import Skin_shop_button_orginal
+from Skin_shop_button_orginal import Skin_shop_button_orginal
 
 import arcade
 
@@ -15,77 +17,83 @@ from Starship import Starship
 from Ultimate import Ultimate
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 class MyGame(arcade.Window):
     def __init__(self, width, height, title):
         super().__init__(width, height, title)
         """ background """
         self.background_picture = arcade.load_texture("Pictures/pixilart-drawing (5).png")
-        self.setting_picture=arcade.load_texture("Pictures/black-screen-background-4k.png")
-        self.setting_button=Setting_button_orginal()
-        self.skin_shop=arcade.load_texture("Pictures/Skin Shop.png")
+        self.setting_picture = arcade.load_texture("Pictures/black-screen-background-4k.png")
+        self.setting_button = Setting_button_orginal()
+        self.skin_shop = arcade.load_texture("Pictures/Skin Shop.png")
+        self.stats_bg = arcade.load_texture("Pictures/Без названия (1).jpg")
 
-        self.skin_shop_button =Skin_shop_button_orginal()
+        self.skin_shop_button = Skin_shop_button_orginal()
         """Starship """
-        self. star_ship_star=Starship()
+        self.star_ship_star = Starship()
         self.star_ship_star.center_x = self.width / 2
-        self.star_ship_star.center_y=self.height *0.25
+        self.star_ship_star.center_y = self.height * 0.25
         """Enemy ship """
-        self.enemy_star_ship = Enemy_Starship(angle=180,is_flip=True)
+        self.enemy_star_ship = Enemy_Starship(angle=180, is_flip=True)
 
         self.enemy_star_ship.center_x = self.width / 2
         self.enemy_star_ship.center_y = self.height * 0.75
         """ Sprite lists """
-        self.enemy_star_ship =arcade.SpriteList()
-        self.lazers =arcade.SpriteList()
-        self.super_ult =arcade.SpriteList()
-        self.all_card_boost =arcade.SpriteList()
+        self.enemy_star_ship = arcade.SpriteList()
+        self.lazers = arcade.SpriteList()
+        self.super_ult = arcade.SpriteList()
+        self.all_card_boost = arcade.SpriteList()
 
         self.game_reset()
         """game status """
-        self.game_status=1
+        self.game_status = 1
         self.set_mouse_visible(False)
-        #self.set_mouse_position(0,0)
+        # self.set_mouse_position(0,0)
         """Waves"""
-        self.waves=1
+        self.waves = 1
         """cooldown"""
-        self.cooldown=time.time()
+        self.cooldown = time.time()
         """Ultimate bar """
-        self.enemy_death=0
+        self.enemy_death = 0
         """ WAVE PREPARE """
         self.wave_prepare = False
         self.prepare_start_time = 0
-        self.prepare_duration =   5
+        self.prepare_duration = 5
         """All cards"""
 
-        self.boost_fr=All_cards_boosts("Pictures/Fire rate card.png",100,"fire_rate")
+        self.boost_fr = All_cards_boosts("Pictures/Fire rate card.png", 100, "fire_rate")
         self.all_card_boost.append(self.boost_fr)
-        self.boost_d = All_cards_boosts("Pictures/Damage.png", 300, "damage")
+        self.boost_d = All_cards_boosts("Pictures/Damage.png", 500, "damage")
         self.all_card_boost.append(self.boost_d)
-        self.boost_Ult = All_cards_boosts("Pictures/Ult.png", 500, "ult_charge")
+        self.boost_Ult = All_cards_boosts("Pictures/Ult.png", 1000, "ult_charge")
         self.all_card_boost.append(self.boost_Ult)
         """ cooldowns"""
-        self.fire_rate_cooldown=0.6
+        self.fire_rate_cooldown = 0.6
+        """Statistic """
+        self.stats = False
+        """Bg movement """
+        self.camera = arcade.Camera(self.width, self.height)
+        self.shake_duration = 0
+        self.shake_intensity = 0
+
+        self.bg_offset_x = 0
+        self.bg_offset_y = 0
+
+        self.bg_target_x = 0
+        self.bg_target_y = 0
+
+        self.parallax_strength = 0.07
+        self.parallax_smooth = 0.1
+        """"All deadth """
+        self.all_deaths=0
 
 
+    def start_shake(self, duration=0.3, intensity=10):
+        self.shake_duration = duration
+        self.shake_intensity = intensity
 
     def check_cards_buttons(self, x, y):
         if self.boost_fr.collides_with_point((x, y)):
-            self.fire_rate_cooldown=self.fire_rate_cooldown * (1-5/100)
+            self.fire_rate_cooldown = self.fire_rate_cooldown * (1 - 5 / 100)
             print(self.fire_rate_cooldown)
         if self.boost_d.collides_with_point((x, y)):
             pass
@@ -104,49 +112,59 @@ class MyGame(arcade.Window):
         self.waves = 1
         self.enemy_create(5)
 
-
-    def enemy_create(self,amount_enemy):
+    def enemy_create(self, amount_enemy):
         for p in range(amount_enemy):
             enemyl1 = Enemy_Starship(180, is_flip=True)
-            enemyl1.center_x=random.randint(100,self.width-100)
-            enemyl1.bottom = self.height + 110 *p
-
+            enemyl1.center_x = random.randint(100, self.width - 100)
+            enemyl1.bottom = self.height + 110 * p
             self.enemy_star_ship.append(enemyl1)
 
     def on_mouse_motion(self, x: int, y: int, dx: int, dy: int):
-        if self.game_status==1:
-            self.star_ship_star.center_x=x
-            self.star_ship_star.center_y=y
+        if self.game_status == 1:
+            self.star_ship_star.center_x = x
+            self.star_ship_star.center_y = y
+
+            center_x = self.width / 2
+            center_y = self.height / 2
+
+            dx = x - center_x
+            dy = y - center_y
+
+            self.bg_target_x = -dx * self.parallax_strength
+            self.bg_target_y = -dy * self.parallax_strength
+
     def on_mouse_press(self, x: int, y: int, button: int, modifiers: int):
-        if button==arcade.MOUSE_BUTTON_LEFT:
+        if button == arcade.MOUSE_BUTTON_LEFT:
             if self.game_status == 2:
                 self.check_menu_buttons(x, y)
                 return
-            if time.time()-self.cooldown>=self.fire_rate_cooldown:
-                self.cooldown=time.time()
+            if time.time() - self.cooldown >= self.fire_rate_cooldown:
+                self.cooldown = time.time()
                 lazer_shoot = Shooting()
-                lazer_shoot .center_x =self.star_ship_star.center_x-29
-                lazer_shoot .center_y =self.star_ship_star.center_y+10
+                lazer_shoot.center_x = self.star_ship_star.center_x - 29
+                lazer_shoot.center_y = self.star_ship_star.center_y + 10
 
-                self.lazers.append(lazer_shoot )
+                self.lazers.append(lazer_shoot)
                 lazer_shoot = Shooting()
-                lazer_shoot .center_x =self.star_ship_star.center_x+29
-                lazer_shoot .center_y =self.star_ship_star.center_y+10
+                lazer_shoot.center_x = self.star_ship_star.center_x + 29
+                lazer_shoot.center_y = self.star_ship_star.center_y + 10
 
-                self.lazers.append(lazer_shoot )
-            if self.game_status==4:
+                self.lazers.append(lazer_shoot)
+            if self.game_status == 4:
                 self.check_cards_buttons(x, y)
                 return
-        if button==arcade.MOUSE_BUTTON_RIGHT:
-            if self.enemy_death>=10:
-                self.enemy_death=0
+        if button == arcade.MOUSE_BUTTON_RIGHT:
+            if self.enemy_death >= 10:
+                self.enemy_death = 0
                 ult_super = Ultimate()
-                ult_super .center_x =self.star_ship_star.center_x-29
-                ult_super .center_y =self.star_ship_star.center_y+10
-                self.super_ult.append(ult_super )
-
+                ult_super.center_x = self.star_ship_star.center_x - 29
+                ult_super.center_y = self.star_ship_star.center_y + 10
+                self.super_ult.append(ult_super)
 
     def on_key_press(self, symbol: int, modifiers: int):
+        if symbol == arcade.key.TAB:
+            self.stats = True
+
         if symbol == arcade.key.ESCAPE:
             if self.game_status == 3:
                 self.game_status = 2
@@ -155,16 +173,23 @@ class MyGame(arcade.Window):
             elif self.game_status == 1:
                 self.game_status = 2
 
-
     def get_enemy_amount(self):
         return 5 + (self.waves - 1) * 5
 
     def on_key_release(self, symbol: int, modifiers: int):
-            pass
+        if symbol == arcade.key.TAB:
+            self.stats = False
 
     def on_draw(self):
         self.clear()
-        arcade.draw_texture_rectangle(self.width / 2, self.height / 2, self.width, self.height, self.background_picture)
+        self.camera.use()
+        arcade.draw_texture_rectangle(
+            center_x=self.width / 2 + self.bg_offset_x,
+            center_y=self.height / 2 + self.bg_offset_y,
+            width=self.width*1.2,
+            height=self.height*1.2,
+            texture=self.background_picture
+        )
         self.lazers.draw()
         self.star_ship_star.draw()
         self.enemy_star_ship.draw()
@@ -174,8 +199,8 @@ class MyGame(arcade.Window):
         arcade.draw_text(f'Fire rate: {self.fire_rate_cooldown}', 0, self.height - 150, font_size=20)
         arcade.draw_text(f'Damage 100', 0, self.height - 200, font_size=20)
 
-        if self.game_status==1:
-            arcade.draw_text("game", 100,100)
+        if self.game_status == 1:
+            arcade.draw_text("game", 100, 100)
             self.set_mouse_visible(False)
             arcade.draw_text(self.enemy_death, 100, 200)
             arcade.draw_text(self.waves, 100, 300)
@@ -183,46 +208,90 @@ class MyGame(arcade.Window):
                 arcade.draw_text(f"Prepare for the wave : {self.prepare_time_left} sec",
                                  self.width / 2 - 100, self.height - 100,
                                  arcade.color.WHITE, 30)
+            if self.stats == True:
+                arcade.draw_texture_rectangle(
+                    center_x=100,
+                    center_y=self.height / 2,
+                    width=self.width / 4,
+                    height=self.height / 4,
+                    texture=self.stats_bg,
+                    alpha=150)
+                arcade.draw_text(
+                    text=f"enemy death:{self.enemy_death}",
+                    start_x=500,
+                    start_y=100,
+                    color=arcade.color.RED,
+                    font_size=50
+                )
+                arcade.draw_text(
+                    text=f"wave: {self.waves}",
+                    start_x=200,
+                    start_y=200,
+                    color=arcade.color.RED,
+                    font_size=50
+                )
+                arcade.draw_text(
+                    text=f"all: {self.all_deaths}",
+                    start_x=700,
+                    start_y=200,
+                    color=arcade.color.GREEN,
+                    font_size=50
+                )
 
         if self.game_status == 2:
             arcade.draw_text("game_settings", 100, 100)
             arcade.draw_texture_rectangle(self.width / 2, self.height / 2, self.width, self.height,
-                                          self.setting_picture,alpha=150)
+                                          self.setting_picture, alpha=150)
             self.setting_button.draw()
             self.skin_shop_button.draw()
             self.set_mouse_visible(True)
-        if self.game_status ==3:
+        if self.game_status == 3:
             arcade.draw_texture_rectangle(self.width / 2, self.height / 2, self.width, self.height,
                                           self.skin_shop, )
         if self.game_status == 4:
             self.all_card_boost.draw()
 
-
     def on_update(self, delta_time):
-        if self.game_status==1:
+        self.bg_offset_x += (self.bg_target_x - self.bg_offset_x) * self.parallax_smooth
+        self.bg_offset_y += (self.bg_target_y - self.bg_offset_y) * self.parallax_smooth
+
+        if self.shake_duration > 0:
+            self.shake_duration -= delta_time
+
+            offset_x = random.uniform(-self.shake_intensity, self.shake_intensity)
+            offset_y = random.uniform(-self.shake_intensity, self.shake_intensity)
+
+            self.camera.move((offset_x, offset_y))
+        else:
+            self.camera.move_to((0, 0), speed=1)
+
+        if self.game_status == 1:
             for enemy in self.enemy_star_ship:
                 enemy.movement(self.width, self.height)
             for lazer in self.lazers:
                 lazer.movement(self.width, self.height)
-                shooted=arcade.check_for_collision_with_list(lazer,self.enemy_star_ship)
-                if len(shooted)>0:
+                shooted = arcade.check_for_collision_with_list(lazer, self.enemy_star_ship)
+                if len(shooted) > 0:
                     lazer.kill()
+                    self.start_shake(0.5, 10)  # todo:shake
+                    # ❗ эту функцию можешь юзать в любом месте, чтобы вызывать тряску камеры
+                    # просто скопируй и вставь где угодно
                     for enemy in shooted:
                         enemy.kill()
-                        self.enemy_death +=1
+                        self.enemy_death += 1
+                        self.all_deaths +=1
 
             for super_ult in self.super_ult:
                 super_ult.movement(self.width, self.height)
                 shooted = arcade.check_for_collision_with_list(super_ult, self.enemy_star_ship)
                 if len(shooted) > 0:
-
                     for enemy in shooted:
                         enemy.kill()
                         self.enemy_death += 1
 
         if len(self.enemy_star_ship) == 0 and not self.wave_prepare:
             self.wave_prepare = True
-            self.game_status=4
+            self.game_status = 4
             self.set_mouse_visible(True)
             self.prepare_start_time = time.time()
 
@@ -232,18 +301,15 @@ class MyGame(arcade.Window):
             self.prepare_time_left = remaining
 
             if elapsed >= self.prepare_duration:
-
                 self.wave_prepare = False
                 self.waves += 1
-                self.game_status=1
+                self.game_status = 1
                 self.set_mouse_visible(False)
                 self.enemy_create(self.get_enemy_amount())
 
 
-
 window = MyGame(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)
 arcade.run()
-
 
 """
 1. выставить карточки в норм порядке + размер подобрать
