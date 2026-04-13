@@ -13,8 +13,7 @@ STATS_TEXTURE = "Pictures/tablet.png"
 """ --------------- HP --------------- """
 HP_PLAYER = 3
 HP_ENEMY = 1
-HP_BOSS = 20
-
+HP_BOSS = 100
 """ --------------- SPEED --------------- """
 SPEED_ENEMIES = 5
 SPEED_BOSS = 5
@@ -27,7 +26,7 @@ DAMAGE_PLAYER = 0.5
 ULT_DAMAGE_PLAYER = 3
 
 """ --------------- OTHER --------------- """
-WAVE_PREPARE_TIME = 5
+WAVE_PREPARE_TIME = 1
 DEFAULT_FIRE_RATE = 0.6
 
 PARALLAX_STRENGTH = 0.07

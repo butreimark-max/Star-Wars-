@@ -6,7 +6,12 @@ from Constants import SPEED_LASER
 
 class Shooting(Animation):
     def __init__(self,speed,texture,type, dir_x, dir_y):
-        super().__init__(filename=texture, scale=0.5)
+        super().__init__(filename=texture, scale=1)
+        if type == 1:
+            self.scale = 1
+        else:
+            self.scale = 5
+
         self.speed=speed
         self.type=type
 

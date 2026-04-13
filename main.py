@@ -3,13 +3,15 @@ import time
 from itertools import cycle
 
 from arcade import draw_text
+from arcade.experimental.uislider import UISlider
+from arcade.gui import UIManager
 
 from All_cards_boosts import All_cards_boosts
 from Boss import Boss
 from Constants import SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE, BACKGROUND_TEXTURE, SETTINGS_TEXTURE, \
     SKIN_SHOP_TEXTURE, STATS_TEXTURE, WAVE_PREPARE_TIME, DEFAULT_FIRE_RATE, SHAKE_DURATION, SHAKE_INTENSITY, \
     PARALLAX_STRENGTH, PARALLAX_SMOOTH, HP_PLAYER, ULTIMATE_CHARGE, BOSS_WAVE, FULLSCREEN, SPEED_LASER, DAMAGE_PLAYER, \
-    ULT_DAMAGE_PLAYER, HEALTH_REGENERATION
+    ULT_DAMAGE_PLAYER, HEALTH_REGENERATION, HP_BOSS
 from Enemy_Starship import Enemy_Starship
 from Setting_button_orginal import Setting_button_orginal
 from Shooting import Shooting
@@ -60,7 +62,7 @@ class MyGame(arcade.Window):
         # self.set_mouse_position(0,0)
 
         """ Waves"""
-        self.waves = 1
+        self.waves = 19
 
         """ cooldown"""
         self.cooldown = time.time()
@@ -81,7 +83,8 @@ class MyGame(arcade.Window):
             ("Pictures/fire-rate-speed-new.png","damage"),
             ("Pictures/ult charge-pixilart.png","ult_charge"),
             ("Pictures/ult-damage-pixilart (2).png","ult_damage"),
-            ("Pictures/health regeneration (1).png","health_regeneration")
+            ("Pictures/health regeneration (1).png","health_regeneration"),
+            ("Pictures/more_health_points.png","more_health")
         ]
 
         """ cooldowns """
@@ -112,12 +115,26 @@ class MyGame(arcade.Window):
 
         """ lifes """
         self.player_lifes = HP_PLAYER
+        self.life_limit = 3
+        self.clicks_regeneration_card = 0
 
 
-    def  create_random_cards(self):
+        self.all_widgets = UIManager()
+        self.all_widgets.enable()
+
+        self.slider = UISlider(value=50, width=300, height=50, x= SCREEN_WIDTH/2-300, y = SCREEN_HEIGHT/2+100)
+        self.all_widgets.add(self.slider)
+        
+
+        @self.slider.event()
+        def on_change(event):
+            print(111111, self.slider.value)
+
+
+    def create_random_cards(self):
         self.all_card_boost =arcade.SpriteList()
         boosts =self.all_boost_types
-        weights = [21,21,21,21,16]
+        weights = [15,15,15,15,20,20]
         positions = [self.width/2 - 400, self.width/2, self.width/2 + 400]
         chosen = random.choices(boosts, weights=weights, k=3)
         for i, boost in enumerate(chosen):
@@ -149,6 +166,11 @@ class MyGame(arcade.Window):
                     self.star_ship_star.ult_damage *=1.03
                 elif card.type =="health_regeneration":
                     self.health_regeneration *=1.05
+                elif card.type =="more_health":
+                    self.clicks_regeneration_card += 1
+                    if self.clicks_regeneration_card % 3 == 0:
+                        self.life_limit += 1
+
 
 
                 # self.wave_prepare = False
@@ -273,6 +295,12 @@ class MyGame(arcade.Window):
         arcade.draw_text(f'Damage:{self.star_ship_star.damage}', 0, self.height - 250, font_size=20)
         arcade.draw_text(f'Ult_damage:{self.star_ship_star.ult_damage}',0,self.height-350, font_size=20)
         arcade.draw_text(f'health_regeneration:{self.health_regeneration}',0,self.height-400, font_size=20)
+        arcade.draw_text(f'upgrade more health check:{self.clicks_regeneration_card}',0,self.height-450, font_size=20)
+
+
+
+        for boss in self.boss_one:
+            self.draw_boss_hp(boss)
 
 
         arcade.draw_text(
@@ -339,14 +367,48 @@ class MyGame(arcade.Window):
             arcade.draw_text("game_settings", 100, 100)
             arcade.draw_texture_rectangle(self.width / 2, self.height / 2, self.width, self.height,
                                           self.setting_picture, alpha=150)
-            self.setting_button.draw()
-            self.skin_shop_button.draw()
+            # self.setting_button.draw()
+            # self.skin_shop_button.draw()
             self.set_mouse_visible(True)
+            self.all_widgets.draw()
+
+
+
         if self.game_status == 3:
             arcade.draw_texture_rectangle(self.width / 2, self.height / 2, self.width, self.height,
                                           self.skin_shop, )
         if self.game_status == 4:
             self.all_card_boost.draw()
+    def draw_boss_hp(self, boss):
+        # размеры полоски
+        bar_width = 100
+        bar_height = 10
+
+        # позиция (над боссом)
+        x = boss.center_x
+        y = boss.center_y + 80
+
+        # процент HP
+        hp_ratio = boss.lifes / HP_BOSS
+
+        # фон (красный — полный бар)
+        arcade.draw_rectangle_filled(
+            center_x=x,
+            center_y=y,
+            width=bar_width,
+            height=bar_height,
+            color=arcade.color.DARK_RED
+        )
+
+        # текущий HP (зелёный)
+        arcade.draw_rectangle_filled(
+            center_x=x - (bar_width * (1 - hp_ratio)) / 2,
+            center_y=y,
+            width=bar_width * hp_ratio,
+            height=bar_height,
+            color=arcade.color.GREEN
+        )
+
     """Update Here !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"""
     def on_update(self, delta_time):
         self.camera_movement(delta_time)
@@ -469,7 +531,11 @@ class MyGame(arcade.Window):
                 self.start_shake(SHAKE_DURATION , SHAKE_INTENSITY )
 
     def health_regeneration_function(self):
-       self.player_lifes+=self.health_regeneration
+        if self.player_lifes<self.life_limit:
+            self.player_lifes+=self.health_regeneration
+            if self.player_lifes>self.life_limit:
+                self.player_lifes=self.life_limit
+
 
     def camera_movement(self, delta_time: float):
         self.bg_offset_x += (self.bg_target_x - self.bg_offset_x) * self.parallax_smooth
@@ -494,10 +560,3 @@ class MyGame(arcade.Window):
 
 window = MyGame(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)
 arcade.run()
-
-"""
-1. выставить карточки в норм порядке + размер подобрать
-2. Сделать так, что когда нажали на краточку - нужно переключить состояние на игру
-3. Нарисовать босса и остальные спрайтики (возможно, прикольные иконки для дэмеджа + файр рейт + ульт, которые будут в углу окна)
-4. Сделать так, чтобы при нажатии на ТАБ отображалась статистика игрока (состояние, тру/фолс) 
-"""
