@@ -62,11 +62,11 @@ class MyGame(arcade.Window):
         # self.set_mouse_position(0,0)
 
         """ Waves"""
-        self.waves = 19
+        self.waves = 1
 
         """ cooldown"""
         self.cooldown = time.time()
-        self.prepare_time_left = time.time()
+        self.reprepare_time_left = time.time()
 
         """ Ultimate bar """
         self.enemy_death = 0
@@ -142,6 +142,7 @@ class MyGame(arcade.Window):
             card = All_cards_boosts(image, positions[i], boost_type)
             self.all_card_boost.append(card)
 
+
     def game_over(self):
         self.game_reset()
         self.player_lifes = HP_PLAYER
@@ -170,7 +171,7 @@ class MyGame(arcade.Window):
                     self.clicks_regeneration_card += 1
                     if self.clicks_regeneration_card % 3 == 0:
                         self.life_limit += 1
-
+                self.all_card_boost.clear()
 
 
                 # self.wave_prepare = False
